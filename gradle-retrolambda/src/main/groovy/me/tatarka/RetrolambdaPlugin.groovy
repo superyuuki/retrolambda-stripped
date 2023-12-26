@@ -44,7 +44,7 @@ public class RetrolambdaPlugin implements Plugin<Project> {
         }
 
         project.task('compileRetrolambda', dependsOn: project.tasks.matching { Task task ->
-            !task.name.equals('compileRetrolambda') && task.name.startsWith('compileRetrolambda')
+            task.name != 'compileRetrolambda' && task.name.startsWith('compileRetrolambda')
         }) { Task task ->
             task.description = "Converts all java 8 class files to java 6 or 7"
             task.group = "build"
@@ -58,21 +58,6 @@ public class RetrolambdaPlugin implements Plugin<Project> {
             project.apply plugin: RetrolambdaPluginGroovy
         }
 
-        project.plugins.withId('com.android.application') {
-            project.apply plugin: RetrolambdaPluginAndroid
-        }
-
-        project.plugins.withId('com.android.feature') {
-            project.apply plugin: RetrolambdaPluginAndroid
-        }
-
-        project.plugins.withId('com.android.library') {
-            project.apply plugin: RetrolambdaPluginAndroid
-        }
-
-        project.plugins.withId('com.android.test') {
-            project.apply plugin: RetrolambdaPluginAndroid
-        }
 
         project.plugins.withType(ApplicationPlugin) {
             project.tasks.findByName('run').dependsOn('compileRetrolambda')

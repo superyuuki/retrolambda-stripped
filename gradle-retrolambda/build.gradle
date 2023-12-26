@@ -1,4 +1,3 @@
-import org.ajoberstar.grgit.*
 
 buildscript {
     repositories {
@@ -9,7 +8,6 @@ buildscript {
     }
     
     dependencies {
-        classpath 'org.ajoberstar:gradle-git:0.11.2'
         classpath "com.gradle.publish:plugin-publish-plugin:0.10.0"
     }
 }
@@ -24,7 +22,7 @@ Properties props = new Properties()
 props.load(new FileInputStream("$projectDir/../gradle.properties"))
 group = props['group']
 version = props['version']
-ext.androidPluginVersion = props['androidPluginVersion']
+ext.androidPluginVersion = '4.0.2'
 
 sourceCompatibility = '1.7'
 
@@ -45,15 +43,15 @@ sourceSets {
 }
 
 dependencies {
-    compile gradleApi()
-    compile localGroovy()
+    implementation gradleApi()
+    implementation localGroovy()
     provided "com.android.tools.build:gradle:$androidPluginVersion"
 
-    testCompile gradleTestKit()
-    testCompile 'junit:junit:4.12'
-    testCompile 'org.assertj:assertj-core:2.1.0'
-    testCompile "com.android.tools.build:gradle:$androidPluginVersion"
-    testCompile 'com.neenbedankt.gradle.plugins:android-apt:1.8'
+    testImplementation gradleTestKit()
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.assertj:assertj-core:3.24.2'
+    testImplementation "com.android.tools.build:gradle:$androidPluginVersion"
+    testImplementation 'com.neenbedankt.gradle.plugins:android-apt:1.8'
 }
 
 idea {
@@ -78,7 +76,7 @@ task createClasspathManifest {
 
 // Add the classpath file to the test runtime classpath
 dependencies {
-    testRuntime files(createClasspathManifest)
+    testRuntimeOnly files(createClasspathManifest)
 }
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
@@ -92,7 +90,6 @@ task sourcesJar(type: Jar) {
 }
 
 pluginBundle {
-    website = 'https://github.com/evant/gradle-retrolambda'
     vcsUrl = 'https://github.com/evant/gradle-retrolambda.git'
     description = 'https://github.com/evant/gradle-retrolambda.git'
     tags = ['java', 'android', 'lambda']
@@ -116,7 +113,7 @@ publishing {
                 description = 'A gradle plugin for getting java lambda support in java 6, 7 and android'
                 url = 'https://github.com/evant/gradle-retrolambda'
                 scm {
-                    url = 'git@github.com:evant/gradle-retrolambda.git'
+                    url = 'git@github.com:superyuuki/retrolambda-stripped.git'
                     connection = 'scm:git:git@github.com:evant/gradle-retrolambda.git'
                     developerConnection = 'scm:git:git@github.com:evant/gradle-retrolambda.git'
                 }
@@ -138,57 +135,19 @@ publishing {
     }
     repositories {
         maven {
-            def releasesRepoUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
-            def snapshotsRepoUrl = 'https://oss.sonatype.org/content/repositories/snapshots'
-            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
             credentials {
-                username project.findProperty('sonatype.username')
-                password project.findProperty('sonatype.password')
+                credentials {
+                    username = "${usr}"
+                    password = "${pwd}"
+                }
+            }
+
+            if(rootProject.version.endsWith('-SNAPSHOT')) {
+                url "https://repo.superyuuki.com/snapshots"
+            } else {
+                url "https://repo.superyuuki.com/releases"
             }
         }
     }
 }
 
-signing {
-    sign publishing.publications.lib
-}
-
-
-def grgit = Grgit.open("$projectDir/..")
-
-task checkRelease { doLast {
-    def readmeVersion = file("$project.rootProject.projectDir/../README.md").readLines().find { it.contains('me.tatarka:gradle-retrolambda:') }?.trim()
-
-    if (readmeVersion == null) {
-        throw new ProjectConfigurationException("Missing README version string", null)
-    }
-
-    if (!readmeVersion.contains(":$version")) {
-        throw new ProjectConfigurationException("README version string: $readmeVersion must match release version: $version", null)
-    }
-
-    def changelogVersion = file("$project.rootProject.projectDir/../CHANGELOG.md").readLines().find { it.contains("### $version") }
-    if (changelogVersion == null) {
-        throw new ProjectConfigurationException("CHANGELOG does not contain changes for release version: $version", null)
-    }
-
-    def branchName = grgit.branch.current.name
-    if (branchName == 'beta') {
-        if (!version.contains('beta')) {
-            throw new ProjectConfigurationException("Beta branch must contain 'beta' in the version name", null)
-        }
-    } else if (branchName != 'master') {
-        throw new ProjectConfigurationException("Branch: $branchName must be master", null)
-    }
-} }
-
-task tagRelease(dependsOn: [checkRelease]) { doLast {
-    grgit.tag.add {
-        name = "v$version"
-        message = "Release of $version"
-    }
-} }
-
-if (!version.endsWith('SNAPSHOT')) {
-    uploadArchives.dependsOn(tagRelease)
-}

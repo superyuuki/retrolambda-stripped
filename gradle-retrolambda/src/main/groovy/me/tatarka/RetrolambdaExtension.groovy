@@ -18,7 +18,6 @@ package me.tatarka
 
 import groovy.transform.CompileStatic
 import org.gradle.api.JavaVersion
-import org.gradle.api.Nullable
 import org.gradle.api.Project
 import org.gradle.api.ProjectConfigurationException
 
@@ -112,9 +111,8 @@ public class RetrolambdaExtension {
         oldJdkSet = true
     }
 
-    @Nullable
     @Deprecated
-    public String getOldJdk() {
+    String getOldJdk() {
         if (!oldJdkSet) {
             oldJdk = findOldJdk()
             oldJdkSet = true
